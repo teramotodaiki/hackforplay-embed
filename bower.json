@@ -18,7 +18,6 @@
     "tests"
   ],
   "dependencies": {
-    "requirejs": "^2.2.0",
     "fetch": "^1.0.0"
   }
 }

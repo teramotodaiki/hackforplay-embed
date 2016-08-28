@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/teramotodaiki/hackforplay-embed#readme",
   "dependencies": {
-    "express": "^4.14.0"
+    "express": "^4.14.0",
+    "whatwg-fetch": "^1.0.0"
   }
 }

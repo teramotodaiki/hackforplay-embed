@@ -1,0 +1,24 @@
+{
+  "name": "hackforplay-embed",
+  "homepage": "https://github.com/teramotodaiki/hackforplay-embed",
+  "authors": [
+    "teramotodaiki <i101323@gmail.com>"
+  ],
+  "description": "A provider an environment for execution the content of the open source HackforPlay",
+  "main": "",
+  "keywords": [
+    "hackforplay"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "requirejs": "^2.2.0",
+    "fetch": "^1.0.0"
+  }
+}

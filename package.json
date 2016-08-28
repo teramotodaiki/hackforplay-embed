@@ -1,0 +1,29 @@
+{
+  "name": "hackforplay-embed",
+  "version": "1.0.0",
+  "description": "To provide an environment for executing the content of the open source HackforPlay オープンソースHackforPlayのコンテンツを実行するための環境を提供する",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teramotodaiki/hackforplay-embed.git"
+  },
+  "author": "teramotodaiki <i101323@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/teramotodaiki/hackforplay-embed/issues"
+  },
+  "homepage": "https://github.com/teramotodaiki/hackforplay-embed#readme",
+  "dependencies": {
+    "express": "^4.14.0",
+    "whatwg-fetch": "^1.0.0"
+  },
+  "devDependencies": {
+    "browserify": "^13.1.0",
+    "gulp": "^3.9.1",
+    "gulp-watchify": "^0.6.0",
+    "watchify": "^3.7.0"
+  }
+}

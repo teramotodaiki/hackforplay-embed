@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/teramotodaiki/hackforplay-embed/issues"
   },
-  "homepage": "https://github.com/teramotodaiki/hackforplay-embed#readme"
+  "homepage": "https://github.com/teramotodaiki/hackforplay-embed#readme",
+  "dependencies": {
+    "express": "^4.14.0"
+  }
 }

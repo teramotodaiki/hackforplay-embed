@@ -4,6 +4,7 @@ const Hack = new EventTarget();
 
 Hack.on = Hack.addEventListener; // synonym
 
+// Connect
 const channel = new MessageChannel();
 
 channel.port1.onmessage = (event) => {

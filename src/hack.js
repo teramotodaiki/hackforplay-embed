@@ -3,4 +3,11 @@ requirejs(['some_mod'], function (mod) {
   mod();
 });
 
-document.querySelector('body').innerHTML = 'HACK!';
+const channel = new MessageChannel();
+
+channel.port1.onmessage = (event) => {
+  console.log(event.data); // pong
+  channel.port1.postMessage('connected!');
+};
+
+window.parent.postMessage('ping', '*', [channel.port2]);

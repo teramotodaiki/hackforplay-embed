@@ -16,6 +16,8 @@ channel.port1.onmessage = (event) => {
     Hack.dispatchEvent(partialEvent);
   }
 };
+Hack.postMessage = channel.port1.postMessage;
+
 
 window.parent.postMessage('ping', '*', [channel.port2]);
 

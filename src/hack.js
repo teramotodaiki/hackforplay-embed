@@ -1,3 +1,6 @@
+const EventTarget = require('event-target-shim');
+
+window.Hack = new EventTarget();
 
 requirejs(['some_mod'], function (mod) {
   mod();

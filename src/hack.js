@@ -1,6 +1,6 @@
 const EventTarget = require('event-target-shim');
 
-window.Hack = new EventTarget();
+const Hack = new EventTarget();
 
 requirejs(['some_mod'], function (mod) {
   mod();
@@ -14,3 +14,6 @@ channel.port1.onmessage = (event) => {
 };
 
 window.parent.postMessage('ping', '*', [channel.port2]);
+
+// Export
+window.Hack = Hack;

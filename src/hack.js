@@ -9,8 +9,12 @@ requirejs(['some_mod'], function (mod) {
 const channel = new MessageChannel();
 
 channel.port1.onmessage = (event) => {
-  console.log(event.data); // pong
-  channel.port1.postMessage('connected!');
+  Hack.dispatchEvent(event);
+  if (event.data.method) {
+    const partialEvent = new Event(event.data.method + '.message');
+    partialEvent.data = event.data;
+    Hack.dispatchEvent(partialEvent);
+  }
 };
 
 window.parent.postMessage('ping', '*', [channel.port2]);

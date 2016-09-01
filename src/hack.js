@@ -2,9 +2,6 @@ const EventTarget = require('event-target-shim');
 
 const Hack = new EventTarget();
 
-requirejs(['some_mod'], function (mod) {
-  mod();
-});
 Hack.on = Hack.addEventListener; // synonym
 
 const channel = new MessageChannel();

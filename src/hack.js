@@ -4,6 +4,26 @@ const Hack = new EventTarget();
 
 Hack.on = Hack.addEventListener; // synonym
 
+// Style
+document.documentElement.style.height =
+document.documentElement.style.width =
+document.body.style.height =
+document.body.style.width = '100%';
+document.body.style.margin = 0;
+document.body.style.overflow = 'hidden';
+
+// Primary canvas
+const canvas = require('./flexible-canvas')();
+canvas.addEventListener('resize', () => {
+  Hack.postMessage({
+    method: 'resize',
+    width: canvas.width,
+    height: canvas.height
+  });
+});
+document.body.appendChild(canvas);
+Hack.canvas = canvas; // export as default
+
 // Connect
 const channel = new MessageChannel();
 
@@ -15,7 +35,10 @@ channel.port1.onmessage = (event) => {
     Hack.dispatchEvent(partialEvent);
   }
 };
-Hack.postMessage = channel.port1.postMessage;
+
+Hack.postMessage = (...args) => {
+  return channel.port1.postMessage(...args);
+}; // export as default
 
 // require
 Hack.on('require.message', (event) => {

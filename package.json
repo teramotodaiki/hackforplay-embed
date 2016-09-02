@@ -19,6 +19,7 @@
   "dependencies": {
     "event-target-shim": "^1.1.1",
     "express": "^4.14.0",
+    "raf": "^3.3.0",
     "whatwg-fetch": "^1.0.0"
   },
   "devDependencies": {

@@ -10,7 +10,7 @@ var watching = false;
 gulp.task('enable-watch-mode', () => watching = true);
 
 gulp.task('browserify', watchify(watchify =>
-  gulp.src('src/*.js')
+  gulp.src('src/hack.js')
     .pipe(watchify({
       watch: watching
     }))

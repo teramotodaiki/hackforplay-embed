@@ -35,7 +35,10 @@ channel.port1.onmessage = (event) => {
     Hack.dispatchEvent(partialEvent);
   }
 };
-Hack.postMessage = channel.port1.postMessage;
+
+Hack.postMessage = (...args) => {
+  return channel.port1.postMessage(...args);
+}; // export as default
 
 // require
 Hack.on('require.message', (event) => {

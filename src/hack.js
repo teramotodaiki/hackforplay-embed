@@ -45,7 +45,7 @@ Hack.on('require.message', (event) => {
 
   (callback => {
     // dependencies
-    requirejs(event.dependencies || [], callback);
+    requirejs(event.data.dependencies || [], callback);
 
   })(() => {
     // main script

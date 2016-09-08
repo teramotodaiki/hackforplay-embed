@@ -1,4 +1,5 @@
 const EventTarget = require('event-target-shim');
+const Postmate = require('postmate/build/postmate.min');
 
 const Hack = new EventTarget();
 
@@ -15,8 +16,7 @@ document.body.style.overflow = 'hidden';
 // Primary canvas
 const canvas = require('./flexible-canvas')();
 canvas.addEventListener('resize', () => {
-  Hack.postMessage({
-    method: 'resize',
+  Hack.parent.emit('resize', {
     width: canvas.width,
     height: canvas.height
   });
@@ -24,34 +24,29 @@ canvas.addEventListener('resize', () => {
 document.body.appendChild(canvas);
 Hack.canvas = canvas; // export as default
 
+
 // Connect
-const channel = new MessageChannel();
+const handshake = new Postmate.Model({
+  size: () => ({ width: canvas.width, height: canvas.height })
+});
 
-channel.port1.onmessage = (event) => {
-  Hack.dispatchEvent(event);
-  if (event.data.method) {
-    const partialEvent = new Event(event.data.method + '.message');
-    partialEvent.data = event.data;
-    Hack.dispatchEvent(partialEvent);
-  }
-};
+handshake.then(parent => {
+  Hack.parent = parent; // export to global
 
-Hack.postMessage = (...args) => {
-  return channel.port1.postMessage(...args);
-}; // export as default
+  // require
+  loadAsync(parent.model.file);
+});
 
-// require
-Hack.on('require.message', (event) => {
-
+function loadAsync({dependencies, code}) {
   (callback => {
     // dependencies
-    requirejs(event.data.dependencies || [], callback);
+    requirejs(dependencies || [], callback);
 
   })(() => {
     // main script
     const script = new Blob([
       `define(function (require, exports, module) {
-        ${event.data.code || ''}
+        ${code || ''}
       });`
     ]);
     requirejs([window.URL.createObjectURL(script)], () => {
@@ -60,10 +55,7 @@ Hack.on('require.message', (event) => {
     });
 
   });
-
-});
-
-window.parent.postMessage('ping', '*', [channel.port2]);
+}
 
 // Export
 window.Hack = Hack;

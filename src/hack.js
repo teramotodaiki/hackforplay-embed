@@ -52,26 +52,23 @@ handshake.then(parent => {
   Hack.parent = parent; // export to global
 
   // require
-  loadAsync(parent.model.file);
+  loadAsync(parent.model.files);
 });
 
-function loadAsync({dependencies, code}) {
-  (callback => {
-    // dependencies
-    requirejs(dependencies || [], callback);
+function loadAsync(files) {
+  const paths = files.map(({name, code = ''}) => {
+    const script = new Blob([`define(function (require, exports, module) {${code}});`]);
+    return { [name]: URL.createObjectURL(script) };
+  });
 
-  })(() => {
-    // main script
-    const script = new Blob([
-      `define(function (require, exports, module) {
-        ${code || ''}
-      });`
-    ]);
-    requirejs([window.URL.createObjectURL(script)], () => {
-      // resolved
-      Hack.dispatchEvent(new Event('load'));
-    });
+  const config = {
+    // alias
+    map: { '*': Object.assign.apply(null, [].concat(paths)) }
+  };
 
+  // config, deps, callback
+  requirejs(config, [files[0].name], () => {
+    Hack.dispatchEvent(new Event('load'));
   });
 }
 

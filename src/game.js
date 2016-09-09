@@ -28,6 +28,19 @@ document.body.appendChild(canvas);
 // When primary canvas unregistered
 Hack.once('canvaschange', () => canvas.parentNode.removeChild(canvas));
 
+// Should use
+Hack.setCanvas = (canvas) => {
+  Hack.canvas = canvas;
+
+  const emit = ({width, height}) => Hack.parent && Hack.parent.emit('resize', {width, height});
+  const stop = propertyChanged(canvas, ['width', 'height'], () => emit(canvas));
+  Hack.once('canvaschange', stop);
+
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  emit(canvas);
+};
+
 Object.defineProperty(Hack, 'canvas', {
   configurable: true, enumerable: true,
   get: () => canvas,

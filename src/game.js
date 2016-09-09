@@ -5,6 +5,12 @@ const Hack = new EventTarget();
 
 Hack.on = Hack.addEventListener; // synonym
 
+// Event will call only once
+Hack.once = (name, handler, config) => Hack.on(name, function task(...eventArgs) {
+  handler.apply(this, eventArgs);
+  Hack.removeEventListener(name, task);
+}, config);
+
 // Style
 document.documentElement.style.height =
 document.documentElement.style.width =

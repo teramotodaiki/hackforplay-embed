@@ -8,6 +8,10 @@ To provide an environment for executing the content of the open source HackforPl
 [Trello](https://trello.com/b/gxWQpAnW/opensource-hackforplay)
 
 
+## CDN
+
+https://embed.hackforplay.xyz/open-source/game/alpha1.html
+
 ## Install
 
 1. Clone this repo.
@@ -20,10 +24,11 @@ To provide an environment for executing the content of the open source HackforPl
 
 It has
 ```html
-<iframe src="http://localhost:3000/index.html" width="480" height="320"></iframe>
+<iframe src="http://localhost:3000/game.html" width="480" height="320"></iframe>
 ```
 
-*index.html* uses [require.js](http://requirejs.org) -- to resolve more dependencies dynamically.
-At first it runs *public/hack.js* next *public/some_mod.js* is loaded.
+*game.html* loads [require.js](http://requirejs.org) and *game.js*
+
+*game.js* is bundled by webpack but use require.js to resolve more dependencies dynamically.
 
 

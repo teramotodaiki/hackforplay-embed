@@ -1,9 +1,17 @@
 const EventTarget = require('event-target-shim');
 const Postmate = require('postmate/build/postmate.min');
 
+const propertyChanged = require('./propertyChanged');
+
 const Hack = new EventTarget();
 
 Hack.on = Hack.addEventListener; // synonym
+
+// Event will call only once
+Hack.once = (name, handler, config) => Hack.on(name, function task(...eventArgs) {
+  handler.apply(this, eventArgs);
+  Hack.removeEventListener(name, task);
+}, config);
 
 // Style
 document.documentElement.style.height =
@@ -14,15 +22,34 @@ document.body.style.margin = 0;
 document.body.style.overflow = 'hidden';
 
 // Primary canvas
-const canvas = require('./flexible-canvas')();
-canvas.addEventListener('resize', () => {
-  Hack.parent.emit('resize', {
-    width: canvas.width,
-    height: canvas.height
-  });
-});
+var canvas = document.createElement('canvas'); // default
 document.body.appendChild(canvas);
-Hack.canvas = canvas; // export as default
+
+// When primary canvas unregistered
+Hack.once('canvaschange', () => canvas.parentNode.removeChild(canvas));
+
+// Should use
+Hack.setCanvas = (canvas) => {
+  Hack.canvas = canvas;
+
+  const emit = ({width, height}) => Hack.parent && Hack.parent.emit('resize', {width, height});
+  const stop = propertyChanged(canvas, ['width', 'height'], () => emit(canvas));
+  Hack.once('canvaschange', stop);
+
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  emit(canvas);
+};
+
+Object.defineProperty(Hack, 'canvas', {
+  configurable: true, enumerable: true,
+  get: () => canvas,
+  set: (replace) => {
+    Hack.dispatchEvent(new Event('canvaschange'));
+    canvas = replace;
+  }
+});
+
 
 // Un-checked parent origin
 const _addEventListener = addEventListener;

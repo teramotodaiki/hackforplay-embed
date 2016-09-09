@@ -47,9 +47,17 @@
 	const EventTarget = __webpack_require__(1);
 	const Postmate = __webpack_require__(5);
 
+	const propertyChanged = __webpack_require__(7);
+
 	const Hack = new EventTarget();
 
 	Hack.on = Hack.addEventListener; // synonym
+
+	// Event will call only once
+	Hack.once = (name, handler, config) => Hack.on(name, function task(...eventArgs) {
+	  handler.apply(this, eventArgs);
+	  Hack.removeEventListener(name, task);
+	}, config);
 
 	// Style
 	document.documentElement.style.height =
@@ -60,15 +68,34 @@
 	document.body.style.overflow = 'hidden';
 
 	// Primary canvas
-	const canvas = __webpack_require__(6)();
-	canvas.addEventListener('resize', () => {
-	  Hack.parent.emit('resize', {
-	    width: canvas.width,
-	    height: canvas.height
-	  });
-	});
+	var canvas = document.createElement('canvas'); // default
 	document.body.appendChild(canvas);
-	Hack.canvas = canvas; // export as default
+
+	// When primary canvas unregistered
+	Hack.once('canvaschange', () => canvas.parentNode.removeChild(canvas));
+
+	// Should use
+	Hack.setCanvas = (canvas) => {
+	  Hack.canvas = canvas;
+
+	  const emit = ({width, height}) => Hack.parent && Hack.parent.emit('resize', {width, height});
+	  const stop = propertyChanged(canvas, ['width', 'height'], () => emit(canvas));
+	  Hack.once('canvaschange', stop);
+
+	  canvas.style.width = '100%';
+	  canvas.style.height = '100%';
+	  emit(canvas);
+	};
+
+	Object.defineProperty(Hack, 'canvas', {
+	  configurable: true, enumerable: true,
+	  get: () => canvas,
+	  set: (replace) => {
+	    Hack.dispatchEvent(new Event('canvaschange'));
+	    canvas = replace;
+	  }
+	});
+
 
 	// Un-checked parent origin
 	const _addEventListener = addEventListener;
@@ -680,38 +707,40 @@
 	!function(e,t){ true?module.exports=t():"function"==typeof define&&define.amd?define(t):e.Postmate=t()}(this,function(){"use strict";function e(){var e;l.debug&&(e=console).log.apply(e,arguments)}function t(e){var t=document.createElement("a");return t.href=e,t.origin}function n(e,t){return e.origin===t&&("object"===a(e.data)&&("postmate"in e.data&&e.data.type===o))}function i(e,t){var n="function"==typeof e[t]?e[t]():e[t];return l.Promise.resolve(n)}var a="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(e){return typeof e}:function(e){return e&&"function"==typeof Symbol&&e.constructor===Symbol?"symbol":typeof e},r=function(e,t){if(!(e instanceof t))throw new TypeError("Cannot call a class as a function")},s=function(){function e(e,t){for(var n=0;n<t.length;n++){var i=t[n];i.enumerable=i.enumerable||!1,i.configurable=!0,"value"in i&&(i.writable=!0),Object.defineProperty(e,i.key,i)}}return function(t,n,i){return n&&e(t.prototype,n),i&&e(t,i),t}}(),o="application/x-postmate-v1+json",d=function(){function t(n){var i=this;r(this,t),this.parent=n.parent,this.frame=n.frame,this.child=n.child,this.childOrigin=n.childOrigin,this.events={},e("Parent: Registering API"),e("Parent: Awaiting messages..."),this.listener=function(t){var n=((t||{}).data||{}).value||{},a=n.data,r=n.name;"emit"===t.data.postmate&&(e("Parent: Received event emission: "+r),r in i.events&&i.events[r].call(i,a))},this.parent.addEventListener("message",this.listener,!1),e("Parent: Awaiting event emissions from Child")}return s(t,[{key:"get",value:function(e){var t=this;return new l.Promise(function(n){var i=(new Date).getTime(),a=function e(a){a.data.uid===i&&"reply"===a.data.postmate&&(t.parent.removeEventListener("message",e,!1),n(a.data.value))};parent.addEventListener("message",a,!1),t.child.postMessage({postmate:"request",type:o,property:e,uid:i},t.childOrigin)})}},{key:"on",value:function(e,t){this.events[e]=t}},{key:"destroy",value:function(){e("Parent: Destroying Postmate instance"),window.removeEventListener("message",this.listener,!1),this.frame.parentNode.removeChild(this.frame)}}]),t}(),h=function(){function t(a){var s=this;r(this,t),this.model=a.model,this.parent=a.parent,this.parentOrigin=a.parentOrigin,this.child=a.child,e("Child: Registering API"),e("Child: Awaiting messages..."),this.child.addEventListener("message",function(t){if(n(t,s.parentOrigin)){e("Child: Received request",t.data);var a=t.data,r=a.property,d=a.uid;i(s.model,r).then(function(e){return t.source.postMessage({property:r,postmate:"reply",type:o,uid:d,value:e},t.origin)})}})}return s(t,[{key:"emit",value:function(t,n){e('Child: Emitting Event "'+t+'"',n),this.parent.postMessage({postmate:"emit",type:o,value:{name:t,data:n}},this.parentOrigin)}}]),t}(),l=function(){function i(e){r(this,i);var t=e.container,n=e.url,a=e.model;return this.parent=window,this.frame=document.createElement("iframe"),(t||document.body).appendChild(this.frame),this.child=this.frame.contentWindow,this.model=a||{},this.sendHandshake(n)}return s(i,[{key:"sendHandshake",value:function(a){var r=this,s=t(a);return new i.Promise(function(t,i){var h=function a(o){return!!n(o,s)&&("handshake-reply"===o.data.postmate?(e("Parent: Received handshake reply from Child"),r.parent.removeEventListener("message",a,!1),r.childOrigin=o.origin,e("Parent: Saving Child origin",r.childOrigin),t(new d(r))):(e("Parent: Invalid handshake reply"),i("Failed handshake")))};r.parent.addEventListener("message",h,!1),r.frame.onload=function(){e("Parent: Sending handshake"),r.child.postMessage({postmate:"handshake",type:o,model:r.model},s)},e("Parent: Loading frame"),r.frame.src=a})}}]),i}();return l.debug=!1,l.Promise=window.Promise,l.Model=function(){function t(e){return r(this,t),this.child=window,this.model=e,this.parent=this.child.parent,this.sendHandshakeReply()}return s(t,[{key:"sendHandshakeReply",value:function(){var t=this;return new l.Promise(function(n,i){var a=function a(r){if("handshake"===r.data.postmate){e("Child: Received handshake from Parent"),t.child.removeEventListener("message",a,!1),e("Child: Sending handshake reply to Parent"),r.source.postMessage({postmate:"handshake-reply",type:o},r.origin),t.parentOrigin=r.origin;var s=r.data.model;if(s){for(var d=Object.keys(s),l=0;l<d.length;l++)s.hasOwnProperty(d[l])&&(t.model[d[l]]=s[d[l]]);e("Child: Inherited and extended model from Parent")}return e("Child: Saving Parent origin",t.parentOrigin),n(new h(t))}return i("Handshake Reply Failed")};t.child.addEventListener("message",a,!1)})}}]),t}(),l});
 
 /***/ },
-/* 6 */
+/* 6 */,
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
-	const raf = __webpack_require__(7); // requestAnimationFrame shim
+	const raf = __webpack_require__(8);
 
-	module.exports = (Hack) => {
+	// propertyChagned(canvas, ['width', 'height'], (peventValues) => log('changed!'))
+	// Only primitives supported
+	module.exports = (obj, props, callback) => {
 
-	  const canvas = document.createElement('canvas');
-	  canvas.style.width = '100%';
-	  canvas.style.height = '100%';
+	  const closure = props.map(key => () => obj[key]);
+	  const resolve = () => closure.map(getter => getter());
 
-	  var _width = canvas.width = window.innerWidth;
-	  var _height = canvas.height = window.innerHeight;
-
-	  raf(function check () {
-	    if (_width !== canvas.width || _height !== canvas.height) {
-	      canvas.dispatchEvent(new Event('resize'));
+	  var stop = false;
+	  var prevent = resolve();
+	  raf(function task() {
+	    if (stop) return;
+	    const current = resolve();
+	    if (!current.every((v, i) => v === prevent[i])) {
+	      callback(prevent);
 	    }
-	    _width = canvas.width;
-	    _height = canvas.height;
-	    raf(check);
+	    prevent = current;
+	    raf(task);
 	  });
 
-	  return canvas;
+	  return () => stop = true;
 	};
 
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {var now = __webpack_require__(8)
+	/* WEBPACK VAR INJECTION */(function(global) {var now = __webpack_require__(9)
 	  , root = typeof window === 'undefined' ? global : window
 	  , vendors = ['moz', 'webkit']
 	  , suffix = 'AnimationFrame'
@@ -787,7 +816,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {// Generated by CoffeeScript 1.7.1
@@ -823,10 +852,10 @@
 
 	}).call(this);
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(9)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(10)))
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	// shim for using process in browser

@@ -23,6 +23,7 @@ document.body.style.overflow = 'hidden';
 
 // Primary canvas
 var canvas = document.createElement('canvas'); // default
+canvas.style.width = canvas.style.height = '100%';
 document.body.appendChild(canvas);
 
 // When primary canvas unregistered

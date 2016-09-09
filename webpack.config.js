@@ -1,7 +1,10 @@
+const path = require('path');
 module.exports = {
-  entry: './src/hack.js',
+  entry: {
+    game: './src/game'
+  },
   output: {
-    path: './public',
-    filename: 'hack.js'
+    path: path.join(__dirname, 'public'),
+    filename: '[name].js'
   }
 };

@@ -44,26 +44,33 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	const EventTarget = __webpack_require__(1);
-	const Postmate = __webpack_require__(5);
+	'use strict';
 
-	const propertyChanged = __webpack_require__(7);
+	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-	const Hack = new EventTarget();
+	var EventTarget = __webpack_require__(1);
+	var Postmate = __webpack_require__(5);
+
+	var propertyChanged = __webpack_require__(6);
+
+	var Hack = new EventTarget();
 
 	Hack.on = Hack.addEventListener; // synonym
 
 	// Event will call only once
-	Hack.once = (name, handler, config) => Hack.on(name, function task(...eventArgs) {
-	  handler.apply(this, eventArgs);
-	  Hack.removeEventListener(name, task);
-	}, config);
+	Hack.once = function (name, handler, config) {
+	  return Hack.on(name, function task() {
+	    for (var _len = arguments.length, eventArgs = Array(_len), _key = 0; _key < _len; _key++) {
+	      eventArgs[_key] = arguments[_key];
+	    }
+
+	    handler.apply(this, eventArgs);
+	    Hack.removeEventListener(name, task);
+	  }, config);
+	};
 
 	// Style
-	document.documentElement.style.height =
-	document.documentElement.style.width =
-	document.body.style.height =
-	document.body.style.width = '100%';
+	document.documentElement.style.height = document.documentElement.style.width = document.body.style.height = document.body.style.width = '100%';
 	document.body.style.margin = 0;
 	document.body.style.overflow = 'hidden';
 
@@ -73,14 +80,22 @@
 	document.body.appendChild(canvas);
 
 	// When primary canvas unregistered
-	Hack.once('canvaschange', () => canvas.parentNode.removeChild(canvas));
+	Hack.once('canvaschange', function () {
+	  return canvas.parentNode.removeChild(canvas);
+	});
 
 	// Should use
-	Hack.setCanvas = (canvas) => {
+	Hack.setCanvas = function (canvas) {
 	  Hack.canvas = canvas;
 
-	  const emit = ({width, height}) => Hack.parent && Hack.parent.emit('resize', {width, height});
-	  const stop = propertyChanged(canvas, ['width', 'height'], () => emit(canvas));
+	  var emit = function emit(_ref) {
+	    var width = _ref.width;
+	    var height = _ref.height;
+	    return Hack.parent && Hack.parent.emit('resize', { width: width, height: height });
+	  };
+	  var stop = propertyChanged(canvas, ['width', 'height'], function () {
+	    return emit(canvas);
+	  });
 	  Hack.once('canvaschange', stop);
 
 	  canvas.style.width = '100%';
@@ -90,39 +105,55 @@
 
 	Object.defineProperty(Hack, 'canvas', {
 	  configurable: true, enumerable: true,
-	  get: () => canvas,
-	  set: (replace) => {
+	  get: function get() {
+	    return canvas;
+	  },
+	  set: function set(replace) {
 	    Hack.dispatchEvent(new Event('canvaschange'));
 	    canvas = replace;
 	  }
 	});
 
-
 	// Un-checked parent origin
-	const _addEventListener = addEventListener;
-	addEventListener = (...args) => {
+	var _addEventListener = addEventListener;
+	window.addEventListener = function () {
+	  for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+	    args[_key2] = arguments[_key2];
+	  }
+
 	  if (args[0] === 'message' && typeof args[1] === 'function') {
-	    const _listener = args[1];
-	    args[1] = (...eArgs) => {
-	      const {data, source} = eArgs[0];
-	      if (source === parent) {
-	        eArgs[0] = {
-	          origin: '*', // Ignore origin check
-	          data, source
-	        };
-	      }
-	      return _listener.apply(window, eArgs);
-	    };
+	    (function () {
+	      var _listener = args[1];
+	      args[1] = function () {
+	        for (var _len3 = arguments.length, eArgs = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+	          eArgs[_key3] = arguments[_key3];
+	        }
+
+	        var _eArgs$ = eArgs[0];
+	        var data = _eArgs$.data;
+	        var source = _eArgs$.source;
+
+	        if (source === parent) {
+	          eArgs[0] = {
+	            origin: '*', // Ignore origin check
+	            data: data, source: source
+	          };
+	        }
+	        return _listener.apply(window, eArgs);
+	      };
+	    })();
 	  }
 	  return _addEventListener.apply(window, args);
 	};
 
 	// Connect
-	const handshake = new Postmate.Model({
-	  size: () => ({ width: canvas.width, height: canvas.height })
+	var handshake = new Postmate.Model({
+	  size: function size() {
+	    return { width: canvas.width, height: canvas.height };
+	  }
 	});
 
-	handshake.then(parent => {
+	handshake.then(function (parent) {
 	  Hack.parent = parent; // export to global
 
 	  // require
@@ -130,25 +161,28 @@
 	});
 
 	function loadAsync(files) {
-	  const paths = files.map(({name, code = ''}) => {
-	    const script = new Blob([`define(function (require, exports, module) {${code}});`]);
-	    return { [name]: URL.createObjectURL(script) };
+	  var paths = files.map(function (_ref2) {
+	    var name = _ref2.name;
+	    var _ref2$code = _ref2.code;
+	    var code = _ref2$code === undefined ? '' : _ref2$code;
+
+	    var script = new Blob(['define(function (require, exports, module) {' + code + '});']);
+	    return _defineProperty({}, name, URL.createObjectURL(script));
 	  });
 
-	  const config = {
+	  var config = {
 	    // alias
 	    map: { '*': Object.assign.apply(null, [].concat(paths)) }
 	  };
 
 	  // config, deps, callback
-	  requirejs(config, [files[0].name], () => {
+	  requirejs(config, [files[0].name], function () {
 	    Hack.dispatchEvent(new Event('load'));
 	  });
 	}
 
 	// Export
 	window.Hack = Hack;
-
 
 /***/ },
 /* 1 */
@@ -708,40 +742,52 @@
 	!function(e,t){ true?module.exports=t():"function"==typeof define&&define.amd?define(t):e.Postmate=t()}(this,function(){"use strict";function e(){var e;l.debug&&(e=console).log.apply(e,arguments)}function t(e){var t=document.createElement("a");return t.href=e,t.origin}function n(e,t){return e.origin===t&&("object"===a(e.data)&&("postmate"in e.data&&e.data.type===o))}function i(e,t){var n="function"==typeof e[t]?e[t]():e[t];return l.Promise.resolve(n)}var a="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(e){return typeof e}:function(e){return e&&"function"==typeof Symbol&&e.constructor===Symbol?"symbol":typeof e},r=function(e,t){if(!(e instanceof t))throw new TypeError("Cannot call a class as a function")},s=function(){function e(e,t){for(var n=0;n<t.length;n++){var i=t[n];i.enumerable=i.enumerable||!1,i.configurable=!0,"value"in i&&(i.writable=!0),Object.defineProperty(e,i.key,i)}}return function(t,n,i){return n&&e(t.prototype,n),i&&e(t,i),t}}(),o="application/x-postmate-v1+json",d=function(){function t(n){var i=this;r(this,t),this.parent=n.parent,this.frame=n.frame,this.child=n.child,this.childOrigin=n.childOrigin,this.events={},e("Parent: Registering API"),e("Parent: Awaiting messages..."),this.listener=function(t){var n=((t||{}).data||{}).value||{},a=n.data,r=n.name;"emit"===t.data.postmate&&(e("Parent: Received event emission: "+r),r in i.events&&i.events[r].call(i,a))},this.parent.addEventListener("message",this.listener,!1),e("Parent: Awaiting event emissions from Child")}return s(t,[{key:"get",value:function(e){var t=this;return new l.Promise(function(n){var i=(new Date).getTime(),a=function e(a){a.data.uid===i&&"reply"===a.data.postmate&&(t.parent.removeEventListener("message",e,!1),n(a.data.value))};parent.addEventListener("message",a,!1),t.child.postMessage({postmate:"request",type:o,property:e,uid:i},t.childOrigin)})}},{key:"on",value:function(e,t){this.events[e]=t}},{key:"destroy",value:function(){e("Parent: Destroying Postmate instance"),window.removeEventListener("message",this.listener,!1),this.frame.parentNode.removeChild(this.frame)}}]),t}(),h=function(){function t(a){var s=this;r(this,t),this.model=a.model,this.parent=a.parent,this.parentOrigin=a.parentOrigin,this.child=a.child,e("Child: Registering API"),e("Child: Awaiting messages..."),this.child.addEventListener("message",function(t){if(n(t,s.parentOrigin)){e("Child: Received request",t.data);var a=t.data,r=a.property,d=a.uid;i(s.model,r).then(function(e){return t.source.postMessage({property:r,postmate:"reply",type:o,uid:d,value:e},t.origin)})}})}return s(t,[{key:"emit",value:function(t,n){e('Child: Emitting Event "'+t+'"',n),this.parent.postMessage({postmate:"emit",type:o,value:{name:t,data:n}},this.parentOrigin)}}]),t}(),l=function(){function i(e){r(this,i);var t=e.container,n=e.url,a=e.model;return this.parent=window,this.frame=document.createElement("iframe"),(t||document.body).appendChild(this.frame),this.child=this.frame.contentWindow,this.model=a||{},this.sendHandshake(n)}return s(i,[{key:"sendHandshake",value:function(a){var r=this,s=t(a);return new i.Promise(function(t,i){var h=function a(o){return!!n(o,s)&&("handshake-reply"===o.data.postmate?(e("Parent: Received handshake reply from Child"),r.parent.removeEventListener("message",a,!1),r.childOrigin=o.origin,e("Parent: Saving Child origin",r.childOrigin),t(new d(r))):(e("Parent: Invalid handshake reply"),i("Failed handshake")))};r.parent.addEventListener("message",h,!1),r.frame.onload=function(){e("Parent: Sending handshake"),r.child.postMessage({postmate:"handshake",type:o,model:r.model},s)},e("Parent: Loading frame"),r.frame.src=a})}}]),i}();return l.debug=!1,l.Promise=window.Promise,l.Model=function(){function t(e){return r(this,t),this.child=window,this.model=e,this.parent=this.child.parent,this.sendHandshakeReply()}return s(t,[{key:"sendHandshakeReply",value:function(){var t=this;return new l.Promise(function(n,i){var a=function a(r){if("handshake"===r.data.postmate){e("Child: Received handshake from Parent"),t.child.removeEventListener("message",a,!1),e("Child: Sending handshake reply to Parent"),r.source.postMessage({postmate:"handshake-reply",type:o},r.origin),t.parentOrigin=r.origin;var s=r.data.model;if(s){for(var d=Object.keys(s),l=0;l<d.length;l++)s.hasOwnProperty(d[l])&&(t.model[d[l]]=s[d[l]]);e("Child: Inherited and extended model from Parent")}return e("Child: Saving Parent origin",t.parentOrigin),n(new h(t))}return i("Handshake Reply Failed")};t.child.addEventListener("message",a,!1)})}}]),t}(),l});
 
 /***/ },
-/* 6 */,
-/* 7 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
-	const raf = __webpack_require__(8);
+	'use strict';
+
+	var raf = __webpack_require__(7);
 
 	// propertyChagned(canvas, ['width', 'height'], (peventValues) => log('changed!'))
 	// Only primitives supported
-	module.exports = (obj, props, callback) => {
+	module.exports = function (obj, props, callback) {
 
-	  const closure = props.map(key => () => obj[key]);
-	  const resolve = () => closure.map(getter => getter());
+	  var closure = props.map(function (key) {
+	    return function () {
+	      return obj[key];
+	    };
+	  });
+	  var resolve = function resolve() {
+	    return closure.map(function (getter) {
+	      return getter();
+	    });
+	  };
 
 	  var stop = false;
 	  var prevent = resolve();
 	  raf(function task() {
 	    if (stop) return;
-	    const current = resolve();
-	    if (!current.every((v, i) => v === prevent[i])) {
+	    var current = resolve();
+	    if (!current.every(function (v, i) {
+	      return v === prevent[i];
+	    })) {
 	      callback(prevent);
 	    }
 	    prevent = current;
 	    raf(task);
 	  });
 
-	  return () => stop = true;
+	  return function () {
+	    return stop = true;
+	  };
 	};
 
-
 /***/ },
-/* 8 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {var now = __webpack_require__(9)
+	/* WEBPACK VAR INJECTION */(function(global) {var now = __webpack_require__(8)
 	  , root = typeof window === 'undefined' ? global : window
 	  , vendors = ['moz', 'webkit']
 	  , suffix = 'AnimationFrame'
@@ -817,7 +863,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 9 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {// Generated by CoffeeScript 1.7.1
@@ -853,10 +899,10 @@
 
 	}).call(this);
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(10)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(9)))
 
 /***/ },
-/* 10 */
+/* 9 */
 /***/ function(module, exports) {
 
 	// shim for using process in browser

@@ -54,7 +54,7 @@ Object.defineProperty(Hack, 'canvas', {
 
 // Un-checked parent origin
 const _addEventListener = addEventListener;
-addEventListener = (...args) => {
+window.addEventListener = (...args) => {
   if (args[0] === 'message' && typeof args[1] === 'function') {
     const _listener = args[1];
     args[1] = (...eArgs) => {

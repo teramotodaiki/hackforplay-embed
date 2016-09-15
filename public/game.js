@@ -48,57 +48,41 @@
 
 	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-	var EventEmitter2 = __webpack_require__(6);
-	var Postmate = __webpack_require__(1);
+	var EventEmitter2 = __webpack_require__(1);
+	var Postmate = __webpack_require__(2);
 
-	var propertyChanged = __webpack_require__(2);
+	var propertyChanged = __webpack_require__(3);
+	var getComputedStyle = function getComputedStyle(elem) {
+	  return elem.currentStyle || document.defaultView.getComputedStyle(elem);
+	};
 
 	var Hack = new EventEmitter2();
 
-	// Style
-	document.documentElement.style.height = document.documentElement.style.width = document.body.style.height = document.body.style.width = '100%';
-	document.body.style.margin = 0;
-	document.body.style.overflow = 'hidden';
-
-	// Primary canvas
-	var canvas = document.createElement('canvas'); // default
-	canvas.style.width = canvas.style.height = '100%';
-	document.body.appendChild(canvas);
-
-	// When primary canvas unregistered
-	Hack.once('canvaschange', function () {
-	  return canvas.parentNode.removeChild(canvas);
-	});
-
-	// Should use
-	Hack.setCanvas = function (canvas) {
-	  Hack.canvas = canvas;
-
-	  var emit = function emit(_ref) {
-	    var width = _ref.width;
-	    var height = _ref.height;
-	    return Hack.parent && Hack.parent.emit('resize', { width: width, height: height });
-	  };
-	  var stop = propertyChanged(canvas, ['width', 'height'], function () {
-	    return emit(canvas);
-	  });
-	  Hack.once('canvaschange', stop);
-
-	  canvas.style.width = '100%';
-	  canvas.style.height = '100%';
-	  emit(canvas);
-	};
-
-	Object.defineProperty(Hack, 'canvas', {
-	  configurable: true, enumerable: true,
+	// An abstract object/ Must implements "width" and "height" properties.
+	var view = getComputedStyle(document.body); // default
+	Object.defineProperty(Hack, 'view', {
 	  get: function get() {
-	    return canvas;
+	    return { width: parseInt(view.width, 10), height: parseInt(view.height, 10) };
 	  },
-	  set: function set(replace) {
-	    Hack.emit('canvaschange');
-	    canvas = replace;
+	  set: function set(value) {
+	    var old = view;
+	    view = value;
+	    Hack.emit('viewchange', old, value);
 	  }
 	});
+
+	// Utility/ Create primary canvas
+	Hack.createCanvas = function (width, height) {
+	  var canvas = document.createElement('canvas');
+	  canvas.width = width;
+	  canvas.height = height;
+	  canvas.style.margin = 0;
+	  canvas.style.padding = 0;
+	  document.body.appendChild(canvas);
+	  Hack.view = canvas;
+
+	  return canvas;
+	};
 
 	// Un-checked parent origin
 	var _addEventListener = addEventListener;
@@ -135,7 +119,7 @@
 	// Connect
 	var handshake = new Postmate.Model({
 	  size: function size() {
-	    return { width: canvas.width, height: canvas.height };
+	    return Hack.view;
 	  }
 	});
 
@@ -144,13 +128,21 @@
 
 	  // require
 	  loadAsync(parent.model.files);
+
+	  // resizing
+	  addEventListener('resize', function () {
+	    return parent.emit('resize', Hack.view);
+	  });
+	  Hack.on('viewchange', function () {
+	    return parent.emit('resize', Hack.view);
+	  });
 	});
 
 	function loadAsync(files) {
-	  var paths = files.map(function (_ref2) {
-	    var name = _ref2.name;
-	    var _ref2$code = _ref2.code;
-	    var code = _ref2$code === undefined ? '' : _ref2$code;
+	  var paths = files.map(function (_ref) {
+	    var name = _ref.name;
+	    var _ref$code = _ref.code;
+	    var code = _ref$code === undefined ? '' : _ref$code;
 
 	    var script = new Blob(['define(function (require, exports, module) {' + code + '});']);
 	    return _defineProperty({}, name, URL.createObjectURL(script));
@@ -172,344 +164,6 @@
 
 /***/ },
 /* 1 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * postmate - A powerful, simple, promise-based postMessage library
-	 * @version v1.0.2
-	 * @link https://github.com/dollarshaveclub/postmate
-	 * @author Jacob Kelley <jakie8@gmail.com>
-	 * @license MIT */
-	!function(e,t){ true?module.exports=t():"function"==typeof define&&define.amd?define(t):e.Postmate=t()}(this,function(){"use strict";function e(){var e;l.debug&&(e=console).log.apply(e,arguments)}function t(e){var t=document.createElement("a");return t.href=e,t.origin}function n(e,t){return e.origin===t&&("object"===a(e.data)&&("postmate"in e.data&&e.data.type===o))}function i(e,t){var n="function"==typeof e[t]?e[t]():e[t];return l.Promise.resolve(n)}var a="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(e){return typeof e}:function(e){return e&&"function"==typeof Symbol&&e.constructor===Symbol?"symbol":typeof e},r=function(e,t){if(!(e instanceof t))throw new TypeError("Cannot call a class as a function")},s=function(){function e(e,t){for(var n=0;n<t.length;n++){var i=t[n];i.enumerable=i.enumerable||!1,i.configurable=!0,"value"in i&&(i.writable=!0),Object.defineProperty(e,i.key,i)}}return function(t,n,i){return n&&e(t.prototype,n),i&&e(t,i),t}}(),o="application/x-postmate-v1+json",d=function(){function t(n){var i=this;r(this,t),this.parent=n.parent,this.frame=n.frame,this.child=n.child,this.childOrigin=n.childOrigin,this.events={},e("Parent: Registering API"),e("Parent: Awaiting messages..."),this.listener=function(t){var n=((t||{}).data||{}).value||{},a=n.data,r=n.name;"emit"===t.data.postmate&&(e("Parent: Received event emission: "+r),r in i.events&&i.events[r].call(i,a))},this.parent.addEventListener("message",this.listener,!1),e("Parent: Awaiting event emissions from Child")}return s(t,[{key:"get",value:function(e){var t=this;return new l.Promise(function(n){var i=(new Date).getTime(),a=function e(a){a.data.uid===i&&"reply"===a.data.postmate&&(t.parent.removeEventListener("message",e,!1),n(a.data.value))};parent.addEventListener("message",a,!1),t.child.postMessage({postmate:"request",type:o,property:e,uid:i},t.childOrigin)})}},{key:"on",value:function(e,t){this.events[e]=t}},{key:"destroy",value:function(){e("Parent: Destroying Postmate instance"),window.removeEventListener("message",this.listener,!1),this.frame.parentNode.removeChild(this.frame)}}]),t}(),h=function(){function t(a){var s=this;r(this,t),this.model=a.model,this.parent=a.parent,this.parentOrigin=a.parentOrigin,this.child=a.child,e("Child: Registering API"),e("Child: Awaiting messages..."),this.child.addEventListener("message",function(t){if(n(t,s.parentOrigin)){e("Child: Received request",t.data);var a=t.data,r=a.property,d=a.uid;i(s.model,r).then(function(e){return t.source.postMessage({property:r,postmate:"reply",type:o,uid:d,value:e},t.origin)})}})}return s(t,[{key:"emit",value:function(t,n){e('Child: Emitting Event "'+t+'"',n),this.parent.postMessage({postmate:"emit",type:o,value:{name:t,data:n}},this.parentOrigin)}}]),t}(),l=function(){function i(e){r(this,i);var t=e.container,n=e.url,a=e.model;return this.parent=window,this.frame=document.createElement("iframe"),(t||document.body).appendChild(this.frame),this.child=this.frame.contentWindow,this.model=a||{},this.sendHandshake(n)}return s(i,[{key:"sendHandshake",value:function(a){var r=this,s=t(a);return new i.Promise(function(t,i){var h=function a(o){return!!n(o,s)&&("handshake-reply"===o.data.postmate?(e("Parent: Received handshake reply from Child"),r.parent.removeEventListener("message",a,!1),r.childOrigin=o.origin,e("Parent: Saving Child origin",r.childOrigin),t(new d(r))):(e("Parent: Invalid handshake reply"),i("Failed handshake")))};r.parent.addEventListener("message",h,!1),r.frame.onload=function(){e("Parent: Sending handshake"),r.child.postMessage({postmate:"handshake",type:o,model:r.model},s)},e("Parent: Loading frame"),r.frame.src=a})}}]),i}();return l.debug=!1,l.Promise=window.Promise,l.Model=function(){function t(e){return r(this,t),this.child=window,this.model=e,this.parent=this.child.parent,this.sendHandshakeReply()}return s(t,[{key:"sendHandshakeReply",value:function(){var t=this;return new l.Promise(function(n,i){var a=function a(r){if("handshake"===r.data.postmate){e("Child: Received handshake from Parent"),t.child.removeEventListener("message",a,!1),e("Child: Sending handshake reply to Parent"),r.source.postMessage({postmate:"handshake-reply",type:o},r.origin),t.parentOrigin=r.origin;var s=r.data.model;if(s){for(var d=Object.keys(s),l=0;l<d.length;l++)s.hasOwnProperty(d[l])&&(t.model[d[l]]=s[d[l]]);e("Child: Inherited and extended model from Parent")}return e("Child: Saving Parent origin",t.parentOrigin),n(new h(t))}return i("Handshake Reply Failed")};t.child.addEventListener("message",a,!1)})}}]),t}(),l});
-
-/***/ },
-/* 2 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var raf = __webpack_require__(3);
-
-	// propertyChagned(canvas, ['width', 'height'], (peventValues) => log('changed!'))
-	// Only primitives supported
-	module.exports = function (obj, props, callback) {
-
-	  var closure = props.map(function (key) {
-	    return function () {
-	      return obj[key];
-	    };
-	  });
-	  var resolve = function resolve() {
-	    return closure.map(function (getter) {
-	      return getter();
-	    });
-	  };
-
-	  var stop = false;
-	  var prevent = resolve();
-	  raf(function task() {
-	    if (stop) return;
-	    var current = resolve();
-	    if (!current.every(function (v, i) {
-	      return v === prevent[i];
-	    })) {
-	      callback(prevent);
-	    }
-	    prevent = current;
-	    raf(task);
-	  });
-
-	  return function () {
-	    return stop = true;
-	  };
-	};
-
-/***/ },
-/* 3 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(global) {var now = __webpack_require__(4)
-	  , root = typeof window === 'undefined' ? global : window
-	  , vendors = ['moz', 'webkit']
-	  , suffix = 'AnimationFrame'
-	  , raf = root['request' + suffix]
-	  , caf = root['cancel' + suffix] || root['cancelRequest' + suffix]
-
-	for(var i = 0; !raf && i < vendors.length; i++) {
-	  raf = root[vendors[i] + 'Request' + suffix]
-	  caf = root[vendors[i] + 'Cancel' + suffix]
-	      || root[vendors[i] + 'CancelRequest' + suffix]
-	}
-
-	// Some versions of FF have rAF but not cAF
-	if(!raf || !caf) {
-	  var last = 0
-	    , id = 0
-	    , queue = []
-	    , frameDuration = 1000 / 60
-
-	  raf = function(callback) {
-	    if(queue.length === 0) {
-	      var _now = now()
-	        , next = Math.max(0, frameDuration - (_now - last))
-	      last = next + _now
-	      setTimeout(function() {
-	        var cp = queue.slice(0)
-	        // Clear queue here to prevent
-	        // callbacks from appending listeners
-	        // to the current frame's queue
-	        queue.length = 0
-	        for(var i = 0; i < cp.length; i++) {
-	          if(!cp[i].cancelled) {
-	            try{
-	              cp[i].callback(last)
-	            } catch(e) {
-	              setTimeout(function() { throw e }, 0)
-	            }
-	          }
-	        }
-	      }, Math.round(next))
-	    }
-	    queue.push({
-	      handle: ++id,
-	      callback: callback,
-	      cancelled: false
-	    })
-	    return id
-	  }
-
-	  caf = function(handle) {
-	    for(var i = 0; i < queue.length; i++) {
-	      if(queue[i].handle === handle) {
-	        queue[i].cancelled = true
-	      }
-	    }
-	  }
-	}
-
-	module.exports = function(fn) {
-	  // Wrap in a new function to prevent
-	  // `cancel` potentially being assigned
-	  // to the native rAF function
-	  return raf.call(root, fn)
-	}
-	module.exports.cancel = function() {
-	  caf.apply(root, arguments)
-	}
-	module.exports.polyfill = function() {
-	  root.requestAnimationFrame = raf
-	  root.cancelAnimationFrame = caf
-	}
-
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
-
-/***/ },
-/* 4 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(process) {// Generated by CoffeeScript 1.7.1
-	(function() {
-	  var getNanoSeconds, hrtime, loadTime;
-
-	  if ((typeof performance !== "undefined" && performance !== null) && performance.now) {
-	    module.exports = function() {
-	      return performance.now();
-	    };
-	  } else if ((typeof process !== "undefined" && process !== null) && process.hrtime) {
-	    module.exports = function() {
-	      return (getNanoSeconds() - loadTime) / 1e6;
-	    };
-	    hrtime = process.hrtime;
-	    getNanoSeconds = function() {
-	      var hr;
-	      hr = hrtime();
-	      return hr[0] * 1e9 + hr[1];
-	    };
-	    loadTime = getNanoSeconds();
-	  } else if (Date.now) {
-	    module.exports = function() {
-	      return Date.now() - loadTime;
-	    };
-	    loadTime = Date.now();
-	  } else {
-	    module.exports = function() {
-	      return new Date().getTime() - loadTime;
-	    };
-	    loadTime = new Date().getTime();
-	  }
-
-	}).call(this);
-
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(5)))
-
-/***/ },
-/* 5 */
-/***/ function(module, exports) {
-
-	// shim for using process in browser
-	var process = module.exports = {};
-
-	// cached from whatever global is present so that test runners that stub it
-	// don't break things.  But we need to wrap it in a try catch in case it is
-	// wrapped in strict mode code which doesn't define any globals.  It's inside a
-	// function because try/catches deoptimize in certain engines.
-
-	var cachedSetTimeout;
-	var cachedClearTimeout;
-
-	(function () {
-	    try {
-	        cachedSetTimeout = setTimeout;
-	    } catch (e) {
-	        cachedSetTimeout = function () {
-	            throw new Error('setTimeout is not defined');
-	        }
-	    }
-	    try {
-	        cachedClearTimeout = clearTimeout;
-	    } catch (e) {
-	        cachedClearTimeout = function () {
-	            throw new Error('clearTimeout is not defined');
-	        }
-	    }
-	} ())
-	function runTimeout(fun) {
-	    if (cachedSetTimeout === setTimeout) {
-	        //normal enviroments in sane situations
-	        return setTimeout(fun, 0);
-	    }
-	    try {
-	        // when when somebody has screwed with setTimeout but no I.E. maddness
-	        return cachedSetTimeout(fun, 0);
-	    } catch(e){
-	        try {
-	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-	            return cachedSetTimeout.call(null, fun, 0);
-	        } catch(e){
-	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-	            return cachedSetTimeout.call(this, fun, 0);
-	        }
-	    }
-
-
-	}
-	function runClearTimeout(marker) {
-	    if (cachedClearTimeout === clearTimeout) {
-	        //normal enviroments in sane situations
-	        return clearTimeout(marker);
-	    }
-	    try {
-	        // when when somebody has screwed with setTimeout but no I.E. maddness
-	        return cachedClearTimeout(marker);
-	    } catch (e){
-	        try {
-	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-	            return cachedClearTimeout.call(null, marker);
-	        } catch (e){
-	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-	            return cachedClearTimeout.call(this, marker);
-	        }
-	    }
-
-
-
-	}
-	var queue = [];
-	var draining = false;
-	var currentQueue;
-	var queueIndex = -1;
-
-	function cleanUpNextTick() {
-	    if (!draining || !currentQueue) {
-	        return;
-	    }
-	    draining = false;
-	    if (currentQueue.length) {
-	        queue = currentQueue.concat(queue);
-	    } else {
-	        queueIndex = -1;
-	    }
-	    if (queue.length) {
-	        drainQueue();
-	    }
-	}
-
-	function drainQueue() {
-	    if (draining) {
-	        return;
-	    }
-	    var timeout = runTimeout(cleanUpNextTick);
-	    draining = true;
-
-	    var len = queue.length;
-	    while(len) {
-	        currentQueue = queue;
-	        queue = [];
-	        while (++queueIndex < len) {
-	            if (currentQueue) {
-	                currentQueue[queueIndex].run();
-	            }
-	        }
-	        queueIndex = -1;
-	        len = queue.length;
-	    }
-	    currentQueue = null;
-	    draining = false;
-	    runClearTimeout(timeout);
-	}
-
-	process.nextTick = function (fun) {
-	    var args = new Array(arguments.length - 1);
-	    if (arguments.length > 1) {
-	        for (var i = 1; i < arguments.length; i++) {
-	            args[i - 1] = arguments[i];
-	        }
-	    }
-	    queue.push(new Item(fun, args));
-	    if (queue.length === 1 && !draining) {
-	        runTimeout(drainQueue);
-	    }
-	};
-
-	// v8 likes predictible objects
-	function Item(fun, array) {
-	    this.fun = fun;
-	    this.array = array;
-	}
-	Item.prototype.run = function () {
-	    this.fun.apply(null, this.array);
-	};
-	process.title = 'browser';
-	process.browser = true;
-	process.env = {};
-	process.argv = [];
-	process.version = ''; // empty string to avoid regexp issues
-	process.versions = {};
-
-	function noop() {}
-
-	process.on = noop;
-	process.addListener = noop;
-	process.once = noop;
-	process.off = noop;
-	process.removeListener = noop;
-	process.removeAllListeners = noop;
-	process.emit = noop;
-
-	process.binding = function (name) {
-	    throw new Error('process.binding is not supported');
-	};
-
-	process.cwd = function () { return '/' };
-	process.chdir = function (dir) {
-	    throw new Error('process.chdir is not supported');
-	};
-	process.umask = function() { return 0; };
-
-
-/***/ },
-/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -1226,6 +880,344 @@
 	    window.EventEmitter2 = EventEmitter;
 	  }
 	}();
+
+
+/***/ },
+/* 2 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * postmate - A powerful, simple, promise-based postMessage library
+	 * @version v1.0.2
+	 * @link https://github.com/dollarshaveclub/postmate
+	 * @author Jacob Kelley <jakie8@gmail.com>
+	 * @license MIT */
+	!function(e,t){ true?module.exports=t():"function"==typeof define&&define.amd?define(t):e.Postmate=t()}(this,function(){"use strict";function e(){var e;l.debug&&(e=console).log.apply(e,arguments)}function t(e){var t=document.createElement("a");return t.href=e,t.origin}function n(e,t){return e.origin===t&&("object"===a(e.data)&&("postmate"in e.data&&e.data.type===o))}function i(e,t){var n="function"==typeof e[t]?e[t]():e[t];return l.Promise.resolve(n)}var a="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(e){return typeof e}:function(e){return e&&"function"==typeof Symbol&&e.constructor===Symbol?"symbol":typeof e},r=function(e,t){if(!(e instanceof t))throw new TypeError("Cannot call a class as a function")},s=function(){function e(e,t){for(var n=0;n<t.length;n++){var i=t[n];i.enumerable=i.enumerable||!1,i.configurable=!0,"value"in i&&(i.writable=!0),Object.defineProperty(e,i.key,i)}}return function(t,n,i){return n&&e(t.prototype,n),i&&e(t,i),t}}(),o="application/x-postmate-v1+json",d=function(){function t(n){var i=this;r(this,t),this.parent=n.parent,this.frame=n.frame,this.child=n.child,this.childOrigin=n.childOrigin,this.events={},e("Parent: Registering API"),e("Parent: Awaiting messages..."),this.listener=function(t){var n=((t||{}).data||{}).value||{},a=n.data,r=n.name;"emit"===t.data.postmate&&(e("Parent: Received event emission: "+r),r in i.events&&i.events[r].call(i,a))},this.parent.addEventListener("message",this.listener,!1),e("Parent: Awaiting event emissions from Child")}return s(t,[{key:"get",value:function(e){var t=this;return new l.Promise(function(n){var i=(new Date).getTime(),a=function e(a){a.data.uid===i&&"reply"===a.data.postmate&&(t.parent.removeEventListener("message",e,!1),n(a.data.value))};parent.addEventListener("message",a,!1),t.child.postMessage({postmate:"request",type:o,property:e,uid:i},t.childOrigin)})}},{key:"on",value:function(e,t){this.events[e]=t}},{key:"destroy",value:function(){e("Parent: Destroying Postmate instance"),window.removeEventListener("message",this.listener,!1),this.frame.parentNode.removeChild(this.frame)}}]),t}(),h=function(){function t(a){var s=this;r(this,t),this.model=a.model,this.parent=a.parent,this.parentOrigin=a.parentOrigin,this.child=a.child,e("Child: Registering API"),e("Child: Awaiting messages..."),this.child.addEventListener("message",function(t){if(n(t,s.parentOrigin)){e("Child: Received request",t.data);var a=t.data,r=a.property,d=a.uid;i(s.model,r).then(function(e){return t.source.postMessage({property:r,postmate:"reply",type:o,uid:d,value:e},t.origin)})}})}return s(t,[{key:"emit",value:function(t,n){e('Child: Emitting Event "'+t+'"',n),this.parent.postMessage({postmate:"emit",type:o,value:{name:t,data:n}},this.parentOrigin)}}]),t}(),l=function(){function i(e){r(this,i);var t=e.container,n=e.url,a=e.model;return this.parent=window,this.frame=document.createElement("iframe"),(t||document.body).appendChild(this.frame),this.child=this.frame.contentWindow,this.model=a||{},this.sendHandshake(n)}return s(i,[{key:"sendHandshake",value:function(a){var r=this,s=t(a);return new i.Promise(function(t,i){var h=function a(o){return!!n(o,s)&&("handshake-reply"===o.data.postmate?(e("Parent: Received handshake reply from Child"),r.parent.removeEventListener("message",a,!1),r.childOrigin=o.origin,e("Parent: Saving Child origin",r.childOrigin),t(new d(r))):(e("Parent: Invalid handshake reply"),i("Failed handshake")))};r.parent.addEventListener("message",h,!1),r.frame.onload=function(){e("Parent: Sending handshake"),r.child.postMessage({postmate:"handshake",type:o,model:r.model},s)},e("Parent: Loading frame"),r.frame.src=a})}}]),i}();return l.debug=!1,l.Promise=window.Promise,l.Model=function(){function t(e){return r(this,t),this.child=window,this.model=e,this.parent=this.child.parent,this.sendHandshakeReply()}return s(t,[{key:"sendHandshakeReply",value:function(){var t=this;return new l.Promise(function(n,i){var a=function a(r){if("handshake"===r.data.postmate){e("Child: Received handshake from Parent"),t.child.removeEventListener("message",a,!1),e("Child: Sending handshake reply to Parent"),r.source.postMessage({postmate:"handshake-reply",type:o},r.origin),t.parentOrigin=r.origin;var s=r.data.model;if(s){for(var d=Object.keys(s),l=0;l<d.length;l++)s.hasOwnProperty(d[l])&&(t.model[d[l]]=s[d[l]]);e("Child: Inherited and extended model from Parent")}return e("Child: Saving Parent origin",t.parentOrigin),n(new h(t))}return i("Handshake Reply Failed")};t.child.addEventListener("message",a,!1)})}}]),t}(),l});
+
+/***/ },
+/* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var raf = __webpack_require__(4);
+
+	// propertyChagned(canvas, ['width', 'height'], (peventValues) => log('changed!'))
+	// Only primitives supported
+	module.exports = function (obj, props, callback) {
+
+	  var closure = props.map(function (key) {
+	    return function () {
+	      return obj[key];
+	    };
+	  });
+	  var resolve = function resolve() {
+	    return closure.map(function (getter) {
+	      return getter();
+	    });
+	  };
+
+	  var stop = false;
+	  var prevent = resolve();
+	  raf(function task() {
+	    if (stop) return;
+	    var current = resolve();
+	    if (!current.every(function (v, i) {
+	      return v === prevent[i];
+	    })) {
+	      callback(prevent);
+	    }
+	    prevent = current;
+	    raf(task);
+	  });
+
+	  return function () {
+	    return stop = true;
+	  };
+	};
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {var now = __webpack_require__(5)
+	  , root = typeof window === 'undefined' ? global : window
+	  , vendors = ['moz', 'webkit']
+	  , suffix = 'AnimationFrame'
+	  , raf = root['request' + suffix]
+	  , caf = root['cancel' + suffix] || root['cancelRequest' + suffix]
+
+	for(var i = 0; !raf && i < vendors.length; i++) {
+	  raf = root[vendors[i] + 'Request' + suffix]
+	  caf = root[vendors[i] + 'Cancel' + suffix]
+	      || root[vendors[i] + 'CancelRequest' + suffix]
+	}
+
+	// Some versions of FF have rAF but not cAF
+	if(!raf || !caf) {
+	  var last = 0
+	    , id = 0
+	    , queue = []
+	    , frameDuration = 1000 / 60
+
+	  raf = function(callback) {
+	    if(queue.length === 0) {
+	      var _now = now()
+	        , next = Math.max(0, frameDuration - (_now - last))
+	      last = next + _now
+	      setTimeout(function() {
+	        var cp = queue.slice(0)
+	        // Clear queue here to prevent
+	        // callbacks from appending listeners
+	        // to the current frame's queue
+	        queue.length = 0
+	        for(var i = 0; i < cp.length; i++) {
+	          if(!cp[i].cancelled) {
+	            try{
+	              cp[i].callback(last)
+	            } catch(e) {
+	              setTimeout(function() { throw e }, 0)
+	            }
+	          }
+	        }
+	      }, Math.round(next))
+	    }
+	    queue.push({
+	      handle: ++id,
+	      callback: callback,
+	      cancelled: false
+	    })
+	    return id
+	  }
+
+	  caf = function(handle) {
+	    for(var i = 0; i < queue.length; i++) {
+	      if(queue[i].handle === handle) {
+	        queue[i].cancelled = true
+	      }
+	    }
+	  }
+	}
+
+	module.exports = function(fn) {
+	  // Wrap in a new function to prevent
+	  // `cancel` potentially being assigned
+	  // to the native rAF function
+	  return raf.call(root, fn)
+	}
+	module.exports.cancel = function() {
+	  caf.apply(root, arguments)
+	}
+	module.exports.polyfill = function() {
+	  root.requestAnimationFrame = raf
+	  root.cancelAnimationFrame = caf
+	}
+
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {// Generated by CoffeeScript 1.7.1
+	(function() {
+	  var getNanoSeconds, hrtime, loadTime;
+
+	  if ((typeof performance !== "undefined" && performance !== null) && performance.now) {
+	    module.exports = function() {
+	      return performance.now();
+	    };
+	  } else if ((typeof process !== "undefined" && process !== null) && process.hrtime) {
+	    module.exports = function() {
+	      return (getNanoSeconds() - loadTime) / 1e6;
+	    };
+	    hrtime = process.hrtime;
+	    getNanoSeconds = function() {
+	      var hr;
+	      hr = hrtime();
+	      return hr[0] * 1e9 + hr[1];
+	    };
+	    loadTime = getNanoSeconds();
+	  } else if (Date.now) {
+	    module.exports = function() {
+	      return Date.now() - loadTime;
+	    };
+	    loadTime = Date.now();
+	  } else {
+	    module.exports = function() {
+	      return new Date().getTime() - loadTime;
+	    };
+	    loadTime = new Date().getTime();
+	  }
+
+	}).call(this);
+
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(6)))
+
+/***/ },
+/* 6 */
+/***/ function(module, exports) {
+
+	// shim for using process in browser
+	var process = module.exports = {};
+
+	// cached from whatever global is present so that test runners that stub it
+	// don't break things.  But we need to wrap it in a try catch in case it is
+	// wrapped in strict mode code which doesn't define any globals.  It's inside a
+	// function because try/catches deoptimize in certain engines.
+
+	var cachedSetTimeout;
+	var cachedClearTimeout;
+
+	(function () {
+	    try {
+	        cachedSetTimeout = setTimeout;
+	    } catch (e) {
+	        cachedSetTimeout = function () {
+	            throw new Error('setTimeout is not defined');
+	        }
+	    }
+	    try {
+	        cachedClearTimeout = clearTimeout;
+	    } catch (e) {
+	        cachedClearTimeout = function () {
+	            throw new Error('clearTimeout is not defined');
+	        }
+	    }
+	} ())
+	function runTimeout(fun) {
+	    if (cachedSetTimeout === setTimeout) {
+	        //normal enviroments in sane situations
+	        return setTimeout(fun, 0);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedSetTimeout(fun, 0);
+	    } catch(e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+	            return cachedSetTimeout.call(null, fun, 0);
+	        } catch(e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+	            return cachedSetTimeout.call(this, fun, 0);
+	        }
+	    }
+
+
+	}
+	function runClearTimeout(marker) {
+	    if (cachedClearTimeout === clearTimeout) {
+	        //normal enviroments in sane situations
+	        return clearTimeout(marker);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedClearTimeout(marker);
+	    } catch (e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+	            return cachedClearTimeout.call(null, marker);
+	        } catch (e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+	            return cachedClearTimeout.call(this, marker);
+	        }
+	    }
+
+
+
+	}
+	var queue = [];
+	var draining = false;
+	var currentQueue;
+	var queueIndex = -1;
+
+	function cleanUpNextTick() {
+	    if (!draining || !currentQueue) {
+	        return;
+	    }
+	    draining = false;
+	    if (currentQueue.length) {
+	        queue = currentQueue.concat(queue);
+	    } else {
+	        queueIndex = -1;
+	    }
+	    if (queue.length) {
+	        drainQueue();
+	    }
+	}
+
+	function drainQueue() {
+	    if (draining) {
+	        return;
+	    }
+	    var timeout = runTimeout(cleanUpNextTick);
+	    draining = true;
+
+	    var len = queue.length;
+	    while(len) {
+	        currentQueue = queue;
+	        queue = [];
+	        while (++queueIndex < len) {
+	            if (currentQueue) {
+	                currentQueue[queueIndex].run();
+	            }
+	        }
+	        queueIndex = -1;
+	        len = queue.length;
+	    }
+	    currentQueue = null;
+	    draining = false;
+	    runClearTimeout(timeout);
+	}
+
+	process.nextTick = function (fun) {
+	    var args = new Array(arguments.length - 1);
+	    if (arguments.length > 1) {
+	        for (var i = 1; i < arguments.length; i++) {
+	            args[i - 1] = arguments[i];
+	        }
+	    }
+	    queue.push(new Item(fun, args));
+	    if (queue.length === 1 && !draining) {
+	        runTimeout(drainQueue);
+	    }
+	};
+
+	// v8 likes predictible objects
+	function Item(fun, array) {
+	    this.fun = fun;
+	    this.array = array;
+	}
+	Item.prototype.run = function () {
+	    this.fun.apply(null, this.array);
+	};
+	process.title = 'browser';
+	process.browser = true;
+	process.env = {};
+	process.argv = [];
+	process.version = ''; // empty string to avoid regexp issues
+	process.versions = {};
+
+	function noop() {}
+
+	process.on = noop;
+	process.addListener = noop;
+	process.once = noop;
+	process.off = noop;
+	process.removeListener = noop;
+	process.removeAllListeners = noop;
+	process.emit = noop;
+
+	process.binding = function (name) {
+	    throw new Error('process.binding is not supported');
+	};
+
+	process.cwd = function () { return '/' };
+	process.chdir = function (dir) {
+	    throw new Error('process.chdir is not supported');
+	};
+	process.umask = function() { return 0; };
 
 
 /***/ }

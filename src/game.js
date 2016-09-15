@@ -2,47 +2,34 @@ const EventEmitter2 = require('eventemitter2');
 const Postmate = require('postmate/build/postmate.min');
 
 const propertyChanged = require('./propertyChanged');
+const getComputedStyle = (elem) => elem.currentStyle || document.defaultView.getComputedStyle(elem);
 
 const Hack = new EventEmitter2();
 
 
-// Style
-document.documentElement.style.height =
-document.documentElement.style.width =
-document.body.style.height =
-document.body.style.width = '100%';
-document.body.style.margin = 0;
-document.body.style.overflow = 'hidden';
-
-// Primary canvas
-var canvas = document.createElement('canvas'); // default
-canvas.style.width = canvas.style.height = '100%';
-document.body.appendChild(canvas);
-
-// When primary canvas unregistered
-Hack.once('canvaschange', () => canvas.parentNode.removeChild(canvas));
-
-// Should use
-Hack.setCanvas = (canvas) => {
-  Hack.canvas = canvas;
-
-  const emit = ({width, height}) => Hack.parent && Hack.parent.emit('resize', {width, height});
-  const stop = propertyChanged(canvas, ['width', 'height'], () => emit(canvas));
-  Hack.once('canvaschange', stop);
-
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
-  emit(canvas);
-};
-
-Object.defineProperty(Hack, 'canvas', {
-  configurable: true, enumerable: true,
-  get: () => canvas,
-  set: (replace) => {
-    Hack.emit('canvaschange');
-    canvas = replace;
+// An abstract object/ Must implements "width" and "height" properties.
+var view = getComputedStyle(document.body); // default
+Object.defineProperty(Hack, 'view', {
+  get: () => ({ width: parseInt(view.width, 10), height: parseInt(view.height, 10) }),
+  set: (value) => {
+    const old = view;
+    view = value;
+    Hack.emit('viewchange', old, value);
   }
 });
+
+// Utility/ Create primary canvas
+Hack.createCanvas = (width, height) => {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  canvas.style.margin = 0;
+  canvas.style.padding = 0;
+  document.body.appendChild(canvas);
+  Hack.view = canvas;
+
+  return canvas;
+};
 
 
 // Un-checked parent origin
@@ -66,7 +53,7 @@ window.addEventListener = (...args) => {
 
 // Connect
 const handshake = new Postmate.Model({
-  size: () => ({ width: canvas.width, height: canvas.height })
+  size: () => Hack.view
 });
 
 handshake.then(parent => {
@@ -74,6 +61,10 @@ handshake.then(parent => {
 
   // require
   loadAsync(parent.model.files);
+
+  // resizing
+  addEventListener('resize', () => parent.emit('resize', Hack.view));
+  Hack.on('viewchange', () => parent.emit('resize', Hack.view));
 });
 
 function loadAsync(files) {

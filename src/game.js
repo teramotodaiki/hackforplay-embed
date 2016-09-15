@@ -7,14 +7,6 @@ const getComputedStyle = (elem) => elem.currentStyle || document.defaultView.get
 const Hack = new EventEmitter2();
 
 
-// Style
-document.documentElement.style.height =
-document.documentElement.style.width =
-document.body.style.height =
-document.body.style.width = '100%';
-document.body.style.margin = 0;
-document.body.style.overflow = 'hidden';
-
 // An abstract object/ Must implements "width" and "height" properties.
 var view = getComputedStyle(document.body); // default
 Object.defineProperty(Hack, 'view', {

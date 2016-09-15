@@ -1,17 +1,10 @@
-const EventTarget = require('event-target-shim');
+const EventEmitter2 = require('eventemitter2');
 const Postmate = require('postmate/build/postmate.min');
 
 const propertyChanged = require('./propertyChanged');
 
-const Hack = new EventTarget();
+const Hack = new EventEmitter2();
 
-Hack.on = Hack.addEventListener; // synonym
-
-// Event will call only once
-Hack.once = (name, handler, config) => Hack.on(name, function task(...eventArgs) {
-  handler.apply(this, eventArgs);
-  Hack.removeEventListener(name, task);
-}, config);
 
 // Style
 document.documentElement.style.height =
@@ -46,7 +39,7 @@ Object.defineProperty(Hack, 'canvas', {
   configurable: true, enumerable: true,
   get: () => canvas,
   set: (replace) => {
-    Hack.dispatchEvent(new Event('canvaschange'));
+    Hack.emit('canvaschange');
     canvas = replace;
   }
 });
@@ -96,7 +89,7 @@ function loadAsync(files) {
 
   // config, deps, callback
   requirejs(config, [files[0].name], () => {
-    Hack.dispatchEvent(new Event('load'));
+    Hack.emit('load');
   });
 }
 

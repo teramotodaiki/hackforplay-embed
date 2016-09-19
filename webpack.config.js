@@ -3,8 +3,7 @@ const webpack = require('webpack');
 
 const config = {
   entry: {
-    game: './src/game',
-    "game.min": './src/game'
+    screen: './src/screen'
   },
   output: {
     path: path.join(__dirname, 'public'),

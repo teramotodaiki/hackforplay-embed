@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Screen - Open Source HackforPlay</title>
+    <style media="screen">
+    .h4p__iframe_container {
+      padding: 0;
+      margin: 0;
+    }
+    .h4p__iframe_container>iframe {
+      display: block;
+      z-index: 1;
+      /*border: 0 none;*/
+    }
+    </style>
+    <script src="./postmate.min.js" charset="utf-8"></script>
+    <script async type="text/javascript">
+
+    window.addEventListener('load', function () {
+      // Make a container
+      var container = document.createElement('div');
+      container.classList.add('h4p__iframe_container');
+      document.body.appendChild(container);
+      // Make an iframe and do handshake
+      Postmate.debug = true;
+      new Postmate({
+        container: container,
+        url: './screen.html',
+        model: {
+          files: [{
+            filename: 'first.js',
+            code: document.getElementById('example1').textContent.replace(/\n    /g, '\n'),
+            isEntryPoint: true
+          }, {
+            filename: 'second.js',
+            alias: 'second',
+            code: document.getElementById('example2').textContent.replace(/\n    /g, '\n')
+          }]
+        }
+      });
+    });
+
+    </script>
+    <script id="example1" type="hack">
+    var second = require('second');
+
+    // This code will execute when run it.
+    document.body.innerText = 'Have a nice hack! ;-)';
+
+    setTimeout(second, 2000);
+
+    </script>
+    <script id="example2" type="hack">
+
+    module.exports = function () {
+      document.body.innerText += ' and module loader is supported!'
+    };
+
+    </script>
+  </head>
+  <body>
+    Welcome hackforplay-embed<br />
+    <a href="https://github.com/teramotodaiki/hackforplay-embed">GitHub</a>
+  </body>
+</html>

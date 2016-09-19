@@ -10,25 +10,31 @@ To provide an environment for executing the content of the open source HackforPl
 
 ## CDN
 
-https://embed.hackforplay.xyz/open-source/game/alpha1.html
+https://embed.hackforplay.xyz/open-source/screen/alpha-3.html
 
 ## Install
 
 1. Clone this repo.
 2. `npm install`
-3. `node server.js`
-4. Open *example/local.html* in your browser **as local file.**
+3. `npm start`
+4. Open `http://localhost:8080/`
 
 
-## How example/local.html works?
+## How it works?
 
-It has
+It makes
 ```html
-<iframe src="http://localhost:3000/game.html" width="480" height="320"></iframe>
+<iframe src="./screen.html"></iframe>
 ```
 
-*game.html* loads [require.js](http://requirejs.org) and *game.js*
-
-*game.js* is bundled by webpack but use require.js to resolve more dependencies dynamically.
+then send code to the frame.
 
 
+*screen.html* loads [require.js](http://requirejs.org) and *screen.js*
+
+So it can resolve dependencies with AMD.
+
+
+See also:
+
+- https://github.com/teramotodaiki/hackforplayer

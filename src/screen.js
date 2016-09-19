@@ -2,7 +2,6 @@ const EventEmitter2 = require('eventemitter2');
 const Postmate = require('postmate/build/postmate.min');
 Postmate.debug = true;
 
-const propertyChanged = require('./propertyChanged');
 const getComputedStyle = (elem) => elem.currentStyle || document.defaultView.getComputedStyle(elem);
 
 const Hack = new EventEmitter2();

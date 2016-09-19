@@ -1,7 +1,7 @@
 const EventEmitter2 = require('eventemitter2');
 const Postmate = require('postmate/build/postmate.min');
+Postmate.debug = process.env.NODE_ENV !== 'production';
 
-const propertyChanged = require('./propertyChanged');
 const getComputedStyle = (elem) => elem.currentStyle || document.defaultView.getComputedStyle(elem);
 
 const Hack = new EventEmitter2();
@@ -57,6 +57,7 @@ const handshake = new Postmate.Model({
 });
 
 handshake.then(parent => {
+
   Hack.parent = parent; // export to global
 
   // require
@@ -68,18 +69,27 @@ handshake.then(parent => {
 });
 
 function loadAsync(files) {
-  const paths = files.map(({name, code = ''}) => {
-    const script = new Blob([`define(function (require, exports, module) {${code}});`]);
-    return { [name]: URL.createObjectURL(script) };
+  files = files.map((file) => {
+    const blob = new Blob([`define(function (require, exports, module) {${file.code}});`]);
+    file.src = URL.createObjectURL(blob);
+    return file;
   });
+
+  const paths = files
+    .filter((file) => typeof file.alias === 'string')
+    .map((file) => ({ [file.alias]: file.src }));
 
   const config = {
     // alias
     map: { '*': Object.assign.apply(null, [].concat(paths)) }
   };
 
+  const entryPoins = files
+    .filter((file) => file.isEntryPoint)
+    .map((file) => file.alias || file.src);
+
   // config, deps, callback
-  requirejs(config, [files[0].name], () => {
+  requirejs(config, entryPoins, () => {
     Hack.emit('load');
   });
 }

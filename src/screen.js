@@ -77,8 +77,8 @@ function loadAsync(files) {
   });
 
   const paths = files
-    .filter((file) => typeof file.alias === 'string')
-    .map((file) => ({ [file.alias]: file.src }));
+    .filter((file) => typeof file.name === 'string')
+    .map((file) => ({ [file.name]: file.src }));
 
   const config = {
     // alias
@@ -87,7 +87,7 @@ function loadAsync(files) {
 
   const entryPoins = files
     .filter((file) => file.isEntryPoint)
-    .map((file) => file.alias || file.src);
+    .map((file) => file.name || file.src);
 
   // config, deps, callback
   requirejs(config, entryPoins, () => {

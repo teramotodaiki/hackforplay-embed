@@ -1,6 +1,8 @@
 const path = require('path');
 const webpack = require('webpack');
 
+const currentVer = 'alpha-5';
+
 const config = {
   entry: {
     screen: './src/screen'
@@ -26,7 +28,8 @@ const config = {
     })
   ],
   devServer: {
-    contentBase: 'public'
+    contentBase: 'public',
+    port: process.env.PORT
   },
 };
 
@@ -37,6 +40,9 @@ if (process.env.NODE_ENV === 'production') {
     }
   });
   config.plugins.push(uglify);
+
+  // CDN upload file
+  config.entry[currentVer] = config.entry.screen;
 }
 
 module.exports = config;

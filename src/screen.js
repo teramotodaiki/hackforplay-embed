@@ -66,6 +66,7 @@ handshake.then(parent => {
   // resizing
   addEventListener('resize', () => parent.emit('resize', Hack.view));
   Hack.on('viewchange', () => parent.emit('resize', Hack.view));
+  Hack.on('load', () => parent.emit('load'));
 });
 
 function loadAsync(files) {

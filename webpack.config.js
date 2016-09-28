@@ -1,7 +1,7 @@
 const path = require('path');
 const webpack = require('webpack');
 
-const currentVer = 'alpha-5';
+const currentVer = 'alpha-6';
 
 const config = {
   entry: {

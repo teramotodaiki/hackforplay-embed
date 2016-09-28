@@ -69,16 +69,28 @@ handshake.then(parent => {
   Hack.on('load', () => parent.emit('load'));
 });
 
+
+// Exprerimental stage
+// _loader(file) => Blob Scheme URL
+const _loader = (file) => {
+  const content =
+    file.loader === 'url' ?
+    // Blob URL Scheme
+    `define(function (require, exports, module) {
+      module.exports = "${URL.createObjectURL(file.blob)}";
+    });` :
+    // AMD definision
+    `define(function (require, exports, module) {${file.code}});`;
+
+  return URL.createObjectURL(new Blob([content]));
+};
+
+
 function loadAsync(files) {
-  files = files.map((file) => {
-    const blob = new Blob([`define(function (require, exports, module) {${file.code}});`]);
-    file.src = URL.createObjectURL(blob);
-    return file;
-  });
 
   const paths = files
-    .filter((file) => typeof file.name === 'string')
-    .map((file) => ({ [file.name]: file.src }));
+    .filter(file => typeof file.name === 'string')
+    .map(file => ({ [file.name]: _loader(file) }));
 
   const config = {
     // alias
@@ -86,8 +98,8 @@ function loadAsync(files) {
   };
 
   const entryPoins = files
-    .filter((file) => file.isEntryPoint)
-    .map((file) => file.name || file.src);
+    .filter(file => file.isEntryPoint)
+    .map(file => file.name);
 
   // config, deps, callback
   requirejs(config, entryPoins, () => {
